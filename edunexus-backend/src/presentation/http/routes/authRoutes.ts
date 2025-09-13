@@ -18,27 +18,29 @@ import { AuthController } from "../../Controller/AuthController";
 
 const route = Router();
 
-// DI Container for registration routes (use _ prefix)
+
 const _useRepo = new userRepository();
+const _OtpRepo = new otpRepository();
+const _emailService = new EmailService();
+const _tokenService = new TokenService();
+
 const _registerTeacherUseCase = new RegisterTeacherUseCase(_useRepo);
 const _registerUserUseCase = new RegisterUserUseCase(_useRepo);
 const _registerAdminUseCase = new RegisterAdminUseCase(_useRepo);
 const _authController = new AuthController(_registerTeacherUseCase, _registerUserUseCase, _registerAdminUseCase);
+const _LoginUseCase = new  LoginUseCase(_useRepo , _tokenService);
+const _SendOtpUseCase = new SendOtpUseCase(_OtpRepo,_emailService);
+const _VerifyOtpUseCase = new VerifyOtpUseCase(_OtpRepo, _useRepo);
+const _ForgotPasswordUseCase = new ForgotPasswordUseCase(_OtpRepo,_emailService);
+const _ResetPasswordUseCase = new ResetPasswordUseCase(_useRepo, _OtpRepo);
 
-// Resource-based register routes
 route.post('/register/student', adaptRegisterRoute(_authController, 'student'));
 route.post('/register/teacher', adaptRegisterRoute(_authController, 'teacher'));
 route.post('/register/admin', adaptRegisterRoute(_authController, 'admin'));
-
-// Non-registration routes (unchanged)
-const OtpRepo = new otpRepository();
-const emailService = new EmailService();
-const tokenService = new TokenService();
-
-route.post('/login', adaptRoute(new LoginUseCase(_useRepo, tokenService)));
-route.post('/send-otp', adaptRoute(new SendOtpUseCase(OtpRepo, emailService)));
-route.post('/verify-otp', adaptRoute(new VerifyOtpUseCase(OtpRepo, _useRepo)));
-route.post('/forgot-password', adaptRoute(new ForgotPasswordUseCase(OtpRepo, emailService)));
-route.post('/reset-password', adaptRoute(new ResetPasswordUseCase(_useRepo, OtpRepo)));
+route.post('/login', adaptRoute(_LoginUseCase));
+route.post('/send-otp', adaptRoute(_SendOtpUseCase));
+route.post('/verify-otp', adaptRoute(_VerifyOtpUseCase));
+route.post('/forgot-password', adaptRoute(_ForgotPasswordUseCase));
+route.post('/reset-password', adaptRoute(_ResetPasswordUseCase));
 
 export default route;

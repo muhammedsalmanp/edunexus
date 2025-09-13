@@ -3,10 +3,10 @@ import { CourseRepository } from '../../../app/repositories/CourseRepository';
 import { CourseEntity, UpdateCourseDTO } from '../../../domain/entities/CourseEntity';
 
 export class UpdateCourseUseCase {
-  constructor(private courseRepository: CourseRepository) {}
+  constructor(private _courseRepository: CourseRepository) {}
 
   async execute(courseId: string, dto: UpdateCourseDTO): Promise<CourseEntity | null> {
-    const course = await this.courseRepository.findById(courseId);
+    const course = await this._courseRepository.findById(courseId);
     if (!course) {
       throw new Error('Course not found');
     }
@@ -26,6 +26,6 @@ export class UpdateCourseUseCase {
       courseStatus: dto.courseStatus || course.courseStatus,
     };
 
-    return await this.courseRepository.update(courseId, updatedCourse);
+    return await this._courseRepository.update(courseId, updatedCourse);
   }
 }

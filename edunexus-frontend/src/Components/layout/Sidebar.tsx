@@ -11,6 +11,7 @@ import {
   FaThLarge,
   FaSignOutAlt,
 } from 'react-icons/fa';
+import logo from '../../../public/logo.png'
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice'; 
@@ -64,7 +65,7 @@ const Sidebar = () => {
       >
         {/* Logo and Title */}
         <div className="flex items-center gap-2 px-6 py-5 border-b">
-          <img src="/logo.png" alt="logo" className="w-10 h-10" />
+          <img src={logo} alt="logo" className="w-10 h-10" />
           <h1 className="font-bold text-xl text-[#7A7900]">EDUNEXUS</h1>
         </div>
 

@@ -4,7 +4,7 @@ import { IUserRepository } from '../repositories/IUserRepository';
 import * as jwt from 'jsonwebtoken';
 
 export class LoginUserUseCase {
-    constructor(private userRepository: IUserRepository) {}
+    constructor(private _userRepository: IUserRepository) {}
 
     async execute(dto: LoginUserDTO): Promise<{ accessToken: string; refreshToken: string }> {
         try {
@@ -12,7 +12,7 @@ export class LoginUserUseCase {
                 throw new Error('Email and password are required');
             }
 
-            const user = await this.userRepository.findByCredentials(dto.email, dto.password);
+            const user = await this._userRepository.findByCredentials(dto.email, dto.password);
             if (!user) {
                 throw new Error('Invalid email or password');
             }

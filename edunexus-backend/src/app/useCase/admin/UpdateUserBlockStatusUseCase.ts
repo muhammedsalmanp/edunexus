@@ -2,7 +2,7 @@ import { IUserRepository } from "../../repositories/IUserRepository";
 import { BaseUserEntity } from "../../../domain/entities/UserEntity";
 
 export class UpdateUserBlockStatusUseCase {
-  constructor(private userRepository: IUserRepository) {}
+  constructor(private _userRepository: IUserRepository) {}
 
   async execute(userId: string, currentUserRole?: string): Promise<BaseUserEntity | null> {
 
@@ -18,7 +18,7 @@ export class UpdateUserBlockStatusUseCase {
 
     try {
 
-      const currentUser = await this.userRepository.findById(userId);
+      const currentUser = await this._userRepository.findById(userId);
       if (!currentUser) {
         console.warn(`UpdateUserBlockStatusUseCase: User not found for ID ${userId}`);
         throw new Error(`User not found for ID ${userId}`);
@@ -27,7 +27,7 @@ export class UpdateUserBlockStatusUseCase {
 
       const newIsBlocked = !currentUser.isBlocked;
 
-      const updatedUser = await this.userRepository.updateUserBlockStatus(userId, newIsBlocked);
+      const updatedUser = await this._userRepository.updateUserBlockStatus(userId, newIsBlocked);
       if (!updatedUser) {
         console.warn(`UpdateUserBlockStatusUseCase: Failed to update block status for user ID ${userId}`);
         throw new Error(`Failed to update block status for user ID ${userId}`);

@@ -2,11 +2,11 @@ import { IUserRepository } from '../../repositories/IUserRepository';
 import { UserResponse } from '../../../domain/entities/UserEntity';
 
 export class GetAllStudentsUseCase {
-  constructor(private userRepository: IUserRepository) {}
+  constructor(private _userRepository: IUserRepository) {}
 
   async execute(): Promise<UserResponse[]> {
     try {
-      const users = await this.userRepository.findAllByRole('student');
+      const users = await this._userRepository.findAllByRole('student');
       return users.map(user => ({
         id:user.id,
         name: user.name,

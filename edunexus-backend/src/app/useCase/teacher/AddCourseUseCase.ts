@@ -12,7 +12,7 @@ interface AddCourseDTO {
 }
 
 export class AddCourseUseCase {
-  constructor(private courseRepository: CourseRepository) {}
+  constructor(private _courseRepository: CourseRepository) {}
 
   async execute(dto: AddCourseDTO): Promise<CourseEntity> {
     const course: CourseEntity = {
@@ -32,6 +32,6 @@ export class AddCourseUseCase {
       createdAt: new Date(),
     };
 
-    return await this.courseRepository.save(course);
+    return await this._courseRepository.save(course);
   }
 }

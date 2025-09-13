@@ -1,9 +1,12 @@
 import { IUserRepository } from '../../repositories/IUserRepository';
-import { OtpRepository } from '../../repositories/OtpRepository';
+import { IOtpRepository } from '../../repositories/IOtpRepository';
 import bcrypt from 'bcrypt';
 
 export class ResetPasswordUseCase {
-  constructor(private userRepository: IUserRepository, private otpRepository: OtpRepository) {}
+  constructor(
+    private _userRepository: IUserRepository, 
+    private _otpRepository: IOtpRepository
+  ) {}
 
   async execute({ email, otp, newPassword }: { email: string; otp: string; newPassword: string }): Promise<void> {
     try {
@@ -13,8 +16,8 @@ export class ResetPasswordUseCase {
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await this.userRepository.updatePassword(email, hashedPassword);
-      await this.otpRepository.deleteOtp(email);
+      await this._userRepository.updatePassword(email, hashedPassword);
+      await this._otpRepository.deleteOtp(email);
     } catch (error) {
       throw error;
     }

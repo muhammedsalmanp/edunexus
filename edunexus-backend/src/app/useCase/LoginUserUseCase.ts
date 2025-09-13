@@ -1,10 +1,10 @@
 import { BaseUserEntity } from '../../domain/entities/UserEntity';
 import { LoginUserDTO } from '../../domain/dtos/LoginUserDTO';
-import { UserRepository } from '../../app/repositories/UserRepository';
+import { IUserRepository } from '../repositories/IUserRepository';
 import * as jwt from 'jsonwebtoken';
 
 export class LoginUserUseCase {
-    constructor(private userRepository: UserRepository) {}
+    constructor(private userRepository: IUserRepository) {}
 
     async execute(dto: LoginUserDTO): Promise<{ accessToken: string; refreshToken: string }> {
         try {

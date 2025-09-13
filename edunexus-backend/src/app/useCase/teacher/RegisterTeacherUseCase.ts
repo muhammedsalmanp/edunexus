@@ -1,6 +1,6 @@
 import { TeacherEntity } from "../../../domain/entities/UserEntity";
 import { RegisterTeacherDTO } from "../../../domain/dtos/RegisterTeacherDTO";
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 
 import { Email } from "../../../domain/valueObjects/Email";
 import { Phone } from "../../../domain/valueObjects/Phone";
@@ -9,7 +9,7 @@ import { Password } from "../../../domain/valueObjects/Password";
 import { v4 as uuidv4 } from 'uuid'
 
 export class RegisterTeacherUseCase {
-    constructor(private userRepository: UserRepository) { };
+    constructor(private _userRepository: IUserRepository) { };
 
     async execute(dto: RegisterTeacherDTO): Promise<TeacherEntity> {
 
@@ -18,7 +18,7 @@ export class RegisterTeacherUseCase {
                 throw new Error('Missing required fileds');
             };
 
-            const existingUser = await this.userRepository.findByEmail(dto.email)
+            const existingUser = await this._userRepository.findByEmail(dto.email)
             if (existingUser) {
                 throw new Error('User with this email already exists');
             };
@@ -37,7 +37,7 @@ export class RegisterTeacherUseCase {
                 dto.experience,
             );
 
-            const savedUser = await this.userRepository.save(user, 'teacher');
+            const savedUser = await this._userRepository.save(user, 'teacher');
 
             if (!savedUser) {
                 throw new Error('Failed to save user');

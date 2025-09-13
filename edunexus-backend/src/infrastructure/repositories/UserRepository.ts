@@ -1,5 +1,5 @@
 import { AdminEntity, BaseUserEntity, StudentEntity, TeacherEntity } from '../../domain/entities/UserEntity';
-import { UserRepository } from '../../app/repositories/UserRepository';
+import { IUserRepository } from '../../app/repositories/IUserRepository';
 import { UserModel, UserDocument } from '../database/models/UserModel';
 import { Email } from '../../domain/valueObjects/Email';
 import { Password } from '../../domain/valueObjects/Password';
@@ -9,7 +9,7 @@ import { TeacherProfileDTO } from '../../domain/dtos/TeacherProfileDTO';
 import { UpdateTeacherProfileDTO } from '../../domain/dtos/UpdateTeacherProfileDTO';
 import { Model } from "mongoose";
 
-export class userRepository implements UserRepository {
+export class userRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<BaseUserEntity | null> {
     if (!email) {

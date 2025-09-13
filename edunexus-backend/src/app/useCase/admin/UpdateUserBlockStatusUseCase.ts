@@ -1,8 +1,8 @@
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 import { BaseUserEntity } from "../../../domain/entities/UserEntity";
 
 export class UpdateUserBlockStatusUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: IUserRepository) {}
 
   async execute(userId: string, currentUserRole?: string): Promise<BaseUserEntity | null> {
 

@@ -1,10 +1,10 @@
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 import { TokenService } from '../../../infrastructure/service/TokenService';
 import { UserResponse } from '../../../domain/types/UserResponse'; 
 
 export class LoginUseCase {
   constructor(
-    private userRepository: UserRepository,
+    private userRepository: IUserRepository,
     private tokenService: TokenService
   ) {}
 

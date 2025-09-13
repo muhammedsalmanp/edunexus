@@ -4,7 +4,7 @@ import { TeacherProfileDTO } from "../../domain/dtos/TeacherProfileDTO";
 import { UpdateTeacherProfileDTO } from "../../domain/dtos/UpdateTeacherProfileDTO";
 import { promises } from "dns";
 
-export interface UserRepository {
+export interface IUserRepository {
   findByEmail(email: string): Promise<BaseUserEntity | null>;
   save<T extends BaseUserEntity>(user: T, role: 'student' | 'teacher' | 'admin'): Promise<T>;
   findByCredentials(email: string, password: string): Promise<BaseUserEntity | null>;

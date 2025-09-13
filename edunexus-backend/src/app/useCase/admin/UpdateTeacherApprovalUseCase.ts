@@ -1,9 +1,9 @@
 // useCases/UpdateTeacherApprovalUseCase.ts
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 import type { BaseUserEntity } from "../../../domain/entities/UserEntity";
 
 export class UpdateTeacherApprovalUseCase {
-  constructor(private teacherRepository: UserRepository) { }
+  constructor(private teacherRepository: IUserRepository) { }
 
   async execute(teacherId: string, action: "approved" | "rejected", currentUserRole?: string, rejectionMessage?: string): Promise<BaseUserEntity> {
     if (!teacherId) throw new Error("Teacher ID is required");

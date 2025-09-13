@@ -1,9 +1,9 @@
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 import { OtpRepository } from '../../repositories/OtpRepository';
 import bcrypt from 'bcrypt';
 
 export class ResetPasswordUseCase {
-  constructor(private userRepository: UserRepository, private otpRepository: OtpRepository) {}
+  constructor(private userRepository: IUserRepository, private otpRepository: OtpRepository) {}
 
   async execute({ email, otp, newPassword }: { email: string; otp: string; newPassword: string }): Promise<void> {
     try {

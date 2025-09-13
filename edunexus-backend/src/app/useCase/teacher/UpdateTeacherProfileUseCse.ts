@@ -1,9 +1,9 @@
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 import { UpdateTeacherProfileDTO } from "../../../domain/dtos/UpdateTeacherProfileDTO";
 import { TeacherProfileDTO } from "../../../domain/dtos/TeacherProfileDTO";
 
 export class UpdateTeacherProfileUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: IUserRepository) {}
 
   async execute(
     id: string,

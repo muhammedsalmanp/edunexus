@@ -1,9 +1,9 @@
 import { OtpRepository } from '../../repositories/OtpRepository';
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 export class VerifyOtpUseCase {
     constructor(
         private otpRepository: OtpRepository,
-        private userepository: UserRepository,
+        private userepository: IUserRepository,
     ) {}
 
     async execute({ email, otp }: { email: string; otp: string }): Promise<boolean> {

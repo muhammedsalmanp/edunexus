@@ -4,6 +4,6 @@ import { RegisterUserUseCase } from '../../../app/useCase/user/RegisterUserUseCa
 
 const router = Router();
 
-router.post('/register', adaptRegisterRoute(new RegisterUserUseCase({} as any)));
+//router.post('/register', adaptRegisterRoute(new RegisterUserUseCase({} as any)));
 
 export default router;

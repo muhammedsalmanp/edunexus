@@ -1,8 +1,8 @@
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 import { UserResponse } from '../../../domain/entities/UserEntity';
 
 export class GetAllTeachersUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: IUserRepository) {}
 
     async execute(): Promise<UserResponse[]> {
 

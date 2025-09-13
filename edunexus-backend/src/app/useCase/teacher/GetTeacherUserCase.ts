@@ -1,8 +1,8 @@
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 import { TeacherProfileDTO } from "../../../domain/dtos/TeacherProfileDTO";
 
 export class GetTeacherProfileUseCase {
-    constructor(private userRepository: UserRepository) { };
+    constructor(private userRepository: IUserRepository) { };
 
     async execute(id: string): Promise<TeacherProfileDTO | null> {
         if (!id) {

@@ -1,7 +1,7 @@
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 
 export class ApplyTeacherUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: IUserRepository) {}
 
   async execute(userId: string): Promise<{ hasApplied: boolean }> {
     const user = await this.userRepository.findById(userId);

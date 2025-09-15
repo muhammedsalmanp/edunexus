@@ -122,13 +122,23 @@ export const getAllTeachers = async (): Promise<Teacher[]> => {
   }
 };
 
-export const getAllStudents = async (): Promise<Student[]> => {
+export const getAllStudents = async (
+  page: number = 1,
+  limit: number = 8,
+  filter: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified' = 'all',
+  search: string = ''
+): Promise<{ students: Student[]; total: number }> => {
   try {
-    const response = await instance.get('/admin/get-all-students');
-    const data = handleResponse(response);
-    return Array.isArray(data) ? normalizeData<Student>(data) : [];
+    const response = await instance.get(
+      `/admin/get-all-students?page=${page}&limit=${limit}&filter=${filter}&search=${search}`
+    );
+    const { data, total } = handleResponse(response);
+
+    const students = Array.isArray(data) ? normalizeData<Student>(data) : [];
+
+    return { students, total };
   } catch (error) {
     handleError(error);
-    return [];
+    return { students: [], total: 0 };
   }
 };

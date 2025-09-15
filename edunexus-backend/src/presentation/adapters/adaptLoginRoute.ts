@@ -7,11 +7,7 @@ interface UseCase<T> {
 export function adaptGoogleLoginRoute<T extends object>(useCase: UseCase<T>) {
   return async (req: Request, res: Response): Promise<Response> => {
     try {
-      console.log("Google login request body:", req.body);
-
-      const result = await useCase.execute(req.body);
-      
-      
+      const result = await useCase.execute(req.body);      
       const loginResult = result as {
         accessToken: string;
         refreshToken: string;
@@ -32,7 +28,6 @@ export function adaptGoogleLoginRoute<T extends object>(useCase: UseCase<T>) {
         maxAge: 7 * 24 * 60 * 60 * 1000, 
       });
 
-      console.log("Google login success:", { accessToken, refreshToken, user });
 
       return res.status(200).json({
         accessToken,

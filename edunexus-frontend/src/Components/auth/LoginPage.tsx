@@ -90,10 +90,6 @@ const LoginPage = ({ userType }: LoginProps) => {
   };
 
 
-  const handleGoogleLogin = () => {
-    dispatch(showNotification({ message: 'Google login not implemented yet.', type: 'info' }));
-  };
-
   const getRoleHint = () => {
     switch (userType) {
       case 'admin':

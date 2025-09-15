@@ -24,6 +24,30 @@ const normalizeData = <T extends Student | Teacher>(
   );
 };
 
+// export const registerUser = async (formData: any, userType: string): Promise<any> => {
+//   try {
+//     let endpoint = '';
+//     switch (userType.toLowerCase()) {
+//       case 'student':
+//         endpoint = '/auth/register/student';
+//         break;
+//       case 'teacher':
+//         endpoint = '/auth/register/teacher';
+//         break;
+//       case 'admin':
+//         endpoint = '/auth/register/admin';
+//         break;
+//       default:
+//         throw new Error('Unsupported user type');
+//     }
+
+//     const response = await axiosInstance.post(endpoint, formData);
+//     return handleResponse(response);
+//   } catch (error) {
+//     handleError(error);
+//   }
+// };
+
 export const registerUser = async (formData: any, userType: string): Promise<any> => {
   try {
     let endpoint = '';
@@ -43,8 +67,9 @@ export const registerUser = async (formData: any, userType: string): Promise<any
 
     const response = await axiosInstance.post(endpoint, formData);
     return handleResponse(response);
-  } catch (error) {
-    handleError(error);
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || 'Registration failed';
+    throw new Error(errorMessage); // Propagate error for UI to display
   }
 };
 

@@ -4,7 +4,7 @@ import { TeacherProfileDTO } from "../../domain/dtos/TeacherProfileDTO";
 import { UpdateTeacherProfileDTO } from "../../domain/dtos/UpdateTeacherProfileDTO";
 import { promises } from "dns";
 
-export interface UserRepository {
+export interface IUserRepository {
   findByEmail(email: string): Promise<BaseUserEntity | null>;
   save<T extends BaseUserEntity>(user: T, role: 'student' | 'teacher' | 'admin'): Promise<T>;
   findByCredentials(email: string, password: string): Promise<BaseUserEntity | null>;
@@ -17,4 +17,6 @@ export interface UserRepository {
   updateUserBlockStatus(userId: string, isBlocked: boolean): Promise<BaseUserEntity | null>;
   updateUserApprovalStatus(userId: string,action: "approved" | "rejected"): Promise<BaseUserEntity | null> 
   apply(userId :string ): Promise <void>;
+  findByGoogleId(googleId: string): Promise<BaseUserEntity | null>;
+  createFromGoogle(profile: {id: string; googleId: string; email: string; name: string; picture?: string; phone?: string | null; role?: 'student'|'teacher'|'admin'; }): Promise<BaseUserEntity>;
 }

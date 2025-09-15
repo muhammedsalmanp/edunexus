@@ -1,40 +1,24 @@
+// src/presentation/adapters/expressRouteAdapter.ts
 import { Request, Response } from 'express';
 import { HttpResponse } from '../http/HttpResponse';
+import { IAuthController } from '../Controller/AuthController';
 
-
-export function adaptRegisterRoute(useCase: any) {
+export const adaptRegisterRoute = (controller: IAuthController, role: 'student' | 'teacher' | 'admin') => {
   return async (req: Request, res: Response) => {
     try {
-      const user = await useCase.execute(req.body); // Execute the use case
-
-      // Return the created user response
-      return HttpResponse.created(res, {
-        id: user.id,
-        name: user.name,
-        email: user.email.value,
-        phone: user.phone.value,
-        createdAt: user.createdAt,
-      });
+      const result = await controller.register(req.body, role);
+      return HttpResponse.created(res, { userId: result.userId });
     } catch (error: any) {
-      console.log('Error in adaptRegisterRoute:', {
-        message: error.message,
-        stack: error.stack,
-        requestBody: req.body,
-      });
-
-      // Handle specific error messages for each case
-      const errorMessage = error.message?.toLowerCase?.() || '';
+      console.error(`Error in ${role} registration route:`, { message: error.message, stack: error.stack });
+      const msg = error.message?.toLowerCase?.() || '';
       if (
-        errorMessage.includes('user with this email already exists') ||
-        errorMessage.includes('invalid email') ||
-        errorMessage.includes('password too short') ||
-        errorMessage.includes('phone number must be 10 digits')
+        msg.includes('email already exists') ||
+        msg.includes('invalid email') ||
+        msg.includes('password too short')
       ) {
         return HttpResponse.badRequest(res, error.message);
       }
-
-      // Return a generic server error if the issue is not specific
       return HttpResponse.serverError(res, error);
     }
   };
-}
+};

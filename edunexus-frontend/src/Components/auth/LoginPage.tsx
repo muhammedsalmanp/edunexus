@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai';
-import { FaGoogle } from 'react-icons/fa';
 import type { LoginForm } from '../../types/authLoging';
 import { userTypeConfigs } from '../../config/LoginuserTypes';
 import { showNotification } from '../../store/slices/notificationSlice';
 import type { RootState } from '../../store';
 import { LoginServiceImpl } from '../../services/auth/LoginService';
-
+import { GoogleAuthService } from '../../services/auth/RegistrationServiceImpl';
+import { GoogleLogin } from '@react-oauth/google';
+import { setLoading } from '../../store/slices/loadingSlice';
 interface LoginProps {
   userType: 'student' | 'admin' | 'teacher';
   loginService: LoginServiceImpl;
 }
 
 const LoginPage = ({ userType }: LoginProps) => {
+  const googleService = new GoogleAuthService();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isLoading = useSelector((state: RootState) => state.loading.isLoading);
@@ -27,7 +29,7 @@ const LoginPage = ({ userType }: LoginProps) => {
     password: '',
     role: userType,
   });
-  const [errors, setErrors] = useState<Partial<Record<string, string>>>({}); // Use string index for dynamic fields
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -52,40 +54,40 @@ const LoginPage = ({ userType }: LoginProps) => {
     setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  // Frontend validation first
-  const newErrors = config.fields.reduce((acc, field) => ({
-    ...acc,
-    [field.name]: validateField(field.name, form[field.name] || ''),
-  }), {} as Partial<Record<string, string>>);
+    // Frontend validation first
+    const newErrors = config.fields.reduce((acc, field) => ({
+      ...acc,
+      [field.name]: validateField(field.name, form[field.name] || ''),
+    }), {} as Partial<Record<string, string>>);
 
-  setErrors(newErrors);
+    setErrors(newErrors);
 
-  if (Object.values(newErrors).some((err) => err !== '')) {
-    dispatch(showNotification({ message: 'Please fix the errors.', type: 'error' }));
-    return;
-  }
-
-  try {
-    const loginService = new LoginServiceImpl();
-    await loginService.login(form, userType, dispatch, navigate);
-  } catch (err: any) {
-    // If backend returns validation errors
-    if (err.response?.data?.errors) {
-      const backendErrors = err.response.data.errors;
-      setErrors(backendErrors); // assuming errors are in { fieldName: message } format
+    if (Object.values(newErrors).some((err) => err !== '')) {
+      dispatch(showNotification({ message: 'Please fix the errors.', type: 'error' }));
+      return;
     }
 
-    // If backend returns a general message
-    if (err.response?.data?.message) {
-      dispatch(showNotification({ message: err.response.data.message, type: 'error' }));
-    } else if (err.message) {
-      dispatch(showNotification({ message: err.message, type: 'error' }));
+    try {
+      const loginService = new LoginServiceImpl();
+      await loginService.login(form, userType, dispatch, navigate);
+    } catch (err: any) {
+      // If backend returns validation errors
+      if (err.response?.data?.errors) {
+        const backendErrors = err.response.data.errors;
+        setErrors(backendErrors); // assuming errors are in { fieldName: message } format
+      }
+
+      // If backend returns a general message
+      if (err.response?.data?.message) {
+        dispatch(showNotification({ message: err.response.data.message, type: 'error' }));
+      } else if (err.message) {
+        dispatch(showNotification({ message: err.message, type: 'error' }));
+      }
     }
-  }
-};
+  };
 
 
   const handleGoogleLogin = () => {
@@ -165,53 +167,74 @@ const LoginPage = ({ userType }: LoginProps) => {
               <hr className="flex-grow border-gray-600" />
             </div>
 
-            <button
-              onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-3 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg transition-all duration-200 ease-in-out hover:scale-105"
-              disabled={isLoading}
-            >
-              <FaGoogle className="text-red-500 w-5 h-5" />
-              <span>Continue with Google</span>
-            </button>
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                const token = credentialResponse.credential;
+                if (!token) return;
 
-            <div className="text-center text-sm text-gray-400">
-              Don’t have an account?{' '}
-              <Link to={`/register/${userType}`} className="text-yellow-500 hover:underline">
-                Sign up
-              </Link>
-            </div>
-            <div className="text-center text-sm text-gray-400 mt-4">
-              {userType === "student" && (
-                <>
-                  Already have an account?{' '}
-                  <Link to="/login/teacher" className="text-yellow-500 hover:underline">
-                    Teacher Login
-                  </Link>
-                </>
-              )}
+                try {
+                  dispatch(setLoading(true));
+                  await googleService.registerOrLoginWithGoogle(
+                    token,
+                    userType as 'student' | 'teacher' | 'admin',
+                    dispatch,
+                    navigate
+                  );
+                  console.log('Google credential:', credentialResponse.credential);
+                } catch (err: any) {
+                  dispatch(
+                    showNotification({
+                      message: err?.message || 'Google login failed',
+                      type: 'error',
+                    })
+                  );
+                } finally {
+                  dispatch(setLoading(false));
+                }
+              }}
+              onError={() => {
+                dispatch(showNotification({ message: 'Google login failed', type: 'error' }));
+              }}
+            />
 
-              {userType === "teacher" && (
-                <>
-                  Already have an account?{' '}
-                  <Link to="/login/student" className="text-yellow-500 hover:underline">
-                    Student Login
-                  </Link>
-                </>
-              )}
+          <div className="text-center text-sm text-gray-400">
+            Don’t have an account?{' '}
+            <Link to={`/register/${userType}`} className="text-yellow-500 hover:underline">
+              Sign up
+            </Link>
+          </div>
+          <div className="text-center text-sm text-gray-400 mt-4">
+            {userType === "student" && (
+              <>
+                Already have an account?{' '}
+                <Link to="/login/teacher" className="text-yellow-500 hover:underline">
+                  Teacher Login
+                </Link>
+              </>
+            )}
 
-              {userType === "admin" && (
-                <>
-                  Already have an account?{' '}
-                  <Link to="/login/admin" className="text-yellow-500 hover:underline">
-                    Admin Login
-                  </Link>
-                </>
-              )}
-            </div>
+            {userType === "teacher" && (
+              <>
+                Already have an account?{' '}
+                <Link to="/login/student" className="text-yellow-500 hover:underline">
+                  Student Login
+                </Link>
+              </>
+            )}
 
-          </form>
-        </div>
+            {userType === "admin" && (
+              <>
+                Already have an account?{' '}
+                <Link to="/login/admin" className="text-yellow-500 hover:underline">
+                  Admin Login
+                </Link>
+              </>
+            )}
+          </div>
+
+        </form>
       </div>
+    </div >
     </>
   );
 };

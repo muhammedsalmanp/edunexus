@@ -17,4 +17,6 @@ export interface IUserRepository {
   updateUserBlockStatus(userId: string, isBlocked: boolean): Promise<BaseUserEntity | null>;
   updateUserApprovalStatus(userId: string,action: "approved" | "rejected"): Promise<BaseUserEntity | null> 
   apply(userId :string ): Promise <void>;
+  findByGoogleId(googleId: string): Promise<BaseUserEntity | null>;
+  createFromGoogle(profile: {id: string; googleId: string; email: string; name: string; picture?: string; phone?: string | null; role?: 'student'|'teacher'|'admin'; }): Promise<BaseUserEntity>;
 }

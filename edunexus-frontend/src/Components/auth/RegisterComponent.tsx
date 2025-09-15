@@ -214,7 +214,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaFacebookF, FaGoogle } from 'react-icons/fa';
+import { FaFacebookF } from 'react-icons/fa';
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai';
 import type { FormData } from '../../types/auth';
 import type { RegistrationFormProps } from './RegistrationForm.types';
@@ -222,10 +222,12 @@ import { userTypeConfigs } from '../../config/userTypes';
 import { showNotification } from '../../store/slices/notificationSlice';
 import { setLoading } from '../../store/slices/loadingSlice';
 import type { RootState } from '../../store';
-
+import { GoogleAuthService } from '../../services/auth/RegistrationServiceImpl';
+import { GoogleLogin } from '@react-oauth/google';
 const RegistrationForm = ({ userType, registrationService }: RegistrationFormProps) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const googleService = new GoogleAuthService();
   const isLoading = useSelector((state: RootState) => state.loading.isLoading);
 
   const config = userTypeConfigs.find(c => c.type === userType);
@@ -350,9 +352,8 @@ const RegistrationForm = ({ userType, registrationService }: RegistrationFormPro
               value={form[field.name] || ''}
               onChange={handleChange}
               onFocus={field.name === 'phone' && !form.phone.startsWith('+91') ? () => setForm(prev => ({ ...prev, phone: '+91' })) : undefined}
-              className={`mt-1 w-full p-2 bg-gray-700 text-white border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-                errors[field.name] ? 'border-red-500' : form[field.name] ? 'border-green-500' : 'border-gray-600'
-              }`}
+              className={`mt-1 w-full p-2 bg-gray-700 text-white border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 ${errors[field.name] ? 'border-red-500' : form[field.name] ? 'border-green-500' : 'border-gray-600'
+                }`}
               disabled={isLoading}
             />
             {field.name === 'password' && (
@@ -374,9 +375,8 @@ const RegistrationForm = ({ userType, registrationService }: RegistrationFormPro
             placeholder="********"
             value={form.confirmPassword || ''}
             onChange={handleChange}
-            className={`mt-1 w-full p-2 bg-gray-700 text-white border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-              errors.confirmPassword ? 'border-red-500' : form.confirmPassword ? 'border-green-500' : 'border-gray-600'
-            }`}
+            className={`mt-1 w-full p-2 bg-gray-700 text-white border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500 ${errors.confirmPassword ? 'border-red-500' : form.confirmPassword ? 'border-green-500' : 'border-gray-600'
+              }`}
             disabled={isLoading}
           />
           <div
@@ -407,8 +407,34 @@ const RegistrationForm = ({ userType, registrationService }: RegistrationFormPro
           <hr className="flex-grow border-gray-600" />
         </div>
         <div className="flex justify-center gap-4">
-          <FaFacebookF className="text-blue-600 bg-white rounded-full w-8 h-8 p-2 cursor-pointer hover:scale-110 transition" />
-          <FaGoogle className="text-red-500 bg-white rounded-full w-8 h-8 p-2 cursor-pointer hover:scale-110 transition" />
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              const token = credentialResponse.credential;
+              if (!token) return;
+
+              try {
+                dispatch(setLoading(true));
+                await googleService.registerOrLoginWithGoogle(
+                  token,
+                  userType as 'student' | 'teacher' | 'admin',
+                  dispatch,
+                  navigate
+                );
+              } catch (err: any) {
+                dispatch(
+                  showNotification({
+                    message: err?.message || 'Google login failed',
+                    type: 'error',
+                  })
+                );
+              } finally {
+                dispatch(setLoading(false));
+              }
+            }}
+            onError={() => {
+              dispatch(showNotification({ message: 'Google login failed', type: 'error' }));
+            }}
+          />
         </div>
         <div className="text-center text-sm">
           Already have an account?{' '}

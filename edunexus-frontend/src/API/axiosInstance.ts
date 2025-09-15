@@ -54,7 +54,7 @@ instance.interceptors.response.use(
 
       try {
 
-        const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/refresh-token`, {}, { withCredentials: true });
+        const res = await instance.post(`/auth/refresh-token`, {}, { withCredentials: true });
         const { token, user } = res.data;
 
 

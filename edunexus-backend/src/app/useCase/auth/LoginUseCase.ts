@@ -1,11 +1,11 @@
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 import { TokenService } from '../../../infrastructure/service/TokenService';
 import { UserResponse } from '../../../domain/types/UserResponse'; 
 
 export class LoginUseCase {
   constructor(
-    private userRepository: UserRepository,
-    private tokenService: TokenService
+    private _userRepository: IUserRepository,
+    private _tokenService: TokenService
   ) {}
 
   async execute({ email, password }: { email: string; password: string }): Promise<{
@@ -18,13 +18,13 @@ export class LoginUseCase {
         throw new Error('Email and password are required');
       }
 
-      const user = await this.userRepository.findByCredentials(email, password);
+      const user = await this._userRepository.findByCredentials(email, password);
       if (!user) {
         throw new Error('Invalid credentials');
       }
 
-      const token = this.tokenService.generateAccessToken(user.id, user.role);
-      const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role);
+      const token = this._tokenService.generateAccessToken(user.id, user.role);
+      const refreshToken = this._tokenService.generateRefreshToken(user.id, user.role);
 
       return {
         token,

@@ -1,4 +1,4 @@
-import { OtpRepository } from '../../app/repositories/OtpRepository';
+import { IOtpRepository } from '../../app/repositories/IOtpRepository';
 import { OtpEntity } from '../../domain/entities/OtpEntity';
 import { Schema, model } from 'mongoose';
 
@@ -10,7 +10,7 @@ const otpSchema = new Schema({
 
 const OtpModel = model('Otp', otpSchema);
 
-export class otpRepository implements OtpRepository {
+export class otpRepository implements IOtpRepository {
 
     async createOtp(email: string, otp: string, expiresAt: Date): Promise<void> {
         await OtpModel.create({ email, otp, expiresAt });

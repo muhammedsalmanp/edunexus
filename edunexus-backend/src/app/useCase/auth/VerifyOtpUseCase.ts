@@ -1,9 +1,9 @@
-import { OtpRepository } from '../../repositories/OtpRepository';
-import { UserRepository } from '../../repositories/UserRepository';
+import { IOtpRepository } from '../../repositories/IOtpRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 export class VerifyOtpUseCase {
     constructor(
-        private otpRepository: OtpRepository,
-        private userepository: UserRepository,
+        private _otpRepository: IOtpRepository,
+        private _userepository: IUserRepository,
     ) {}
 
     async execute({ email, otp }: { email: string; otp: string }): Promise<boolean> {
@@ -14,7 +14,7 @@ export class VerifyOtpUseCase {
                 throw new Error('Email and OTP are required');
             }
 
-            const otpEntity = await this.otpRepository.findOtp(email);
+            const otpEntity = await this._otpRepository.findOtp(email);
             if (!otpEntity) {
                 throw new Error('No OTP found for this email');
             }
@@ -24,12 +24,12 @@ export class VerifyOtpUseCase {
             }
 
             if (new Date() > otpEntity.expiresAt) {
-                await this.otpRepository.deleteOtp(email);
+                await this._otpRepository.deleteOtp(email);
                 throw new Error('OTP has expired');
             }
 
-            await this.otpRepository.deleteOtp(email);
-            await this.userepository.verifyUser(email);
+            await this._otpRepository.deleteOtp(email);
+            await this._userepository.verifyUser(email);
             
             return true;
         } catch (error) {

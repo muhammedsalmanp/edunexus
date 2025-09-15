@@ -1,9 +1,9 @@
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 import { UpdateTeacherProfileDTO } from "../../../domain/dtos/UpdateTeacherProfileDTO";
 import { TeacherProfileDTO } from "../../../domain/dtos/TeacherProfileDTO";
 
 export class UpdateTeacherProfileUseCase {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private _userRepository: IUserRepository) {}
 
   async execute(
     id: string,
@@ -42,7 +42,7 @@ export class UpdateTeacherProfileUseCase {
       if (profilePicUrl) updatedData.profilePic = profilePicUrl;
       if (certificateUrls) updatedData.certificates = certificateUrls;
 
-      const updatedProfile = await this.userRepository.updateTeacherProfile(id, updatedData);
+      const updatedProfile = await this._userRepository.updateTeacherProfile(id, updatedData);
       if (!updatedProfile) {
         console.warn(`UpdateTeacherProfileUseCase: Failed to update profile for ID ${id}`);
         throw new Error(`Failed to update teacher profile for ID ${id}`);

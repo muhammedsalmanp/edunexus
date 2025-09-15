@@ -1,5 +1,5 @@
 import { AdminEntity, BaseUserEntity, StudentEntity, TeacherEntity } from '../../domain/entities/UserEntity';
-import { UserRepository } from '../../app/repositories/UserRepository';
+import { IUserRepository } from '../../app/repositories/IUserRepository';
 import { UserModel, UserDocument } from '../database/models/UserModel';
 import { Email } from '../../domain/valueObjects/Email';
 import { Password } from '../../domain/valueObjects/Password';
@@ -9,36 +9,44 @@ import { TeacherProfileDTO } from '../../domain/dtos/TeacherProfileDTO';
 import { UpdateTeacherProfileDTO } from '../../domain/dtos/UpdateTeacherProfileDTO';
 import { Model } from "mongoose";
 
-export class userRepository implements UserRepository {
+export class userRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<BaseUserEntity | null> {
     if (!email) {
-      throw new Error('Email is required');
+      throw new Error("Email is required");
     }
+
     const userDoc: UserDocument | null = await UserModel.findOne({ email }).exec();
     if (!userDoc) return null;
 
+    const password = userDoc.password ? Password.create(userDoc.password) : null;
+    const phone = userDoc.phone ? Phone.create(userDoc.phone) : null;
+
+
     switch (userDoc.role) {
-      case 'student':
+      case "student":
         return new StudentEntity(
           userDoc.id,
           userDoc.name,
           Email.create(userDoc.email),
-          Password.create(userDoc.password),
-          Phone.create(userDoc.phone),
+          password,
+          phone,
           userDoc.isVerified,
           userDoc.isBlocked,
           userDoc.approvedByAdmin,
           userDoc.hasApplied,
-          userDoc.createdAt,
+          userDoc.isActive,
+          userDoc.googleId,
+          userDoc.createdAt
         );
-      case 'teacher':
+
+      case "teacher":
         return new TeacherEntity(
           userDoc.id,
           userDoc.name,
           Email.create(userDoc.email),
-          Password.create(userDoc.password),
-          Phone.create(userDoc.phone),
+          password,
+          phone,
           userDoc.qualifications || [],
           userDoc.experience || 0,
           userDoc.certificates || [],
@@ -52,30 +60,46 @@ export class userRepository implements UserRepository {
           userDoc.approvedByAdmin,
           userDoc.isBlocked,
           userDoc.hasApplied,
-          userDoc.createdAt,
+          userDoc.isActive,
+          userDoc.googleId,
+          userDoc.createdAt
         );
-      case 'admin':
+
+      case "admin":
         return new AdminEntity(
           userDoc.id,
           userDoc.name,
           Email.create(userDoc.email),
-          Password.create(userDoc.password),
-          Phone.create(userDoc.phone),
+          password,
+          phone,
           userDoc.isVerified,
           userDoc.isBlocked,
           userDoc.approvedByAdmin,
           userDoc.hasApplied,
-          userDoc.createdAt,
+          userDoc.isActive,
+          userDoc.googleId,
+          userDoc.createdAt
         );
     }
+
     return null;
   }
 
+
   async save<T extends BaseUserEntity>(user: T, role: 'student' | 'teacher' | 'admin'): Promise<T> {
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(user.password.value, saltRounds);
+    let hashedPassword: string | null = null;
+
+    // Hash password only if it exists
+    if (user.password) {
+      const saltRounds = 10;
+      hashedPassword = await bcrypt.hash(user.password.value, saltRounds);
+    }
+
+    // Handle phone value safely
+    const phoneValue = user.phone ? user.phone.value : null;
 
     let userDoc;
+
     switch (role) {
       case 'student':
         userDoc = new UserModel({
@@ -83,12 +107,13 @@ export class userRepository implements UserRepository {
           name: user.name,
           email: user.email.value,
           password: hashedPassword,
-          phone: user.phone.value,
+          phone: phoneValue,
           role: 'student',
-          approvedByAdmin: "approved",
+          approvedByAdmin: 'approved',
           createdAt: user.createdAt,
         });
         break;
+
       case 'teacher':
         if (!(user instanceof TeacherEntity)) {
           throw new Error('Invalid user type for teacher role');
@@ -98,24 +123,30 @@ export class userRepository implements UserRepository {
           name: user.name,
           email: user.email.value,
           password: hashedPassword,
-          phone: user.phone.value,
+          phone: phoneValue,
           role: 'teacher',
-          approvedByAdmin: "pending",
+          approvedByAdmin: 'pending',
           qualifications: user.qualifications,
           experience: user.experience,
           certificates: user.certificates,
+          bio: user.bio,
+          profilePic: user.profilePic,
+          educationHistory: user.educationHistory,
+          specializations: user.specializations,
+          awards: user.awards,
           createdAt: user.createdAt,
         });
         break;
+
       case 'admin':
         userDoc = new UserModel({
           _id: user.id,
           name: user.name,
           email: user.email.value,
           password: hashedPassword,
-          phone: user.phone.value,
+          phone: phoneValue,
           role: 'admin',
-          approvedByAdmin: "approved",
+          approvedByAdmin: 'approved',
           createdAt: user.createdAt,
         });
         break;
@@ -125,6 +156,7 @@ export class userRepository implements UserRepository {
     return user as T;
   }
 
+
   async findByCredentials(email: string, password: string): Promise<BaseUserEntity | null> {
     if (!email || !password) {
       throw new Error('Email and Password are required');
@@ -132,9 +164,12 @@ export class userRepository implements UserRepository {
 
     const userDoc: UserDocument | null = await UserModel.findOne({ email }).exec();
     if (!userDoc) return null;
+    if (userDoc.password) {
+      const isMatch = await bcrypt.compare(password, userDoc.password);
+      if (!isMatch) return null;
+    }
 
-    const isMatch = await bcrypt.compare(password, userDoc.password);
-    if (!isMatch) return null;
+
 
     return this.findByEmail(email);
   }
@@ -144,8 +179,10 @@ export class userRepository implements UserRepository {
     if (!user) return null;
 
     const email = Email.create(user.email);
-    const phone = Phone.create(user.phone);
-    const password = Password.create(user.password);
+    const phone = user.phone ? Phone.create(user.phone) : null;
+    const password = user.password ? Password.create(user.password) : null;
+
+
 
     switch (user.role) {
       case 'student':
@@ -159,15 +196,18 @@ export class userRepository implements UserRepository {
           user.isBlocked,
           user.approvedByAdmin,
           user.hasApplied,
-          user.createdAt
+          user.isActive,
+          user.googleId,
+          user.createdAt,
         );
+
       case 'teacher':
         return new TeacherEntity(
           user._id,
           user.name,
           email,
-          password,
-          phone,
+          password, // can be null
+          phone,    // can be null
           user.qualifications || [],
           user.experience || 0,
           user.certificates || [],
@@ -181,25 +221,32 @@ export class userRepository implements UserRepository {
           user.approvedByAdmin,
           user.isBlocked,
           user.hasApplied,
-          user.createdAt
+          user.isActive,
+          user.googleId,
+          user.createdAt,
         );
+
       case 'admin':
         return new AdminEntity(
           user._id,
           user.name,
           email,
-          password,
-          phone,
+          password, // can be null
+          phone,    // can be null
           user.isVerified,
           user.isBlocked,
           user.approvedByAdmin,
           user.hasApplied,
-          user.createdAt
+          user.isActive,
+          user.googleId,
+          user.createdAt,
         );
+
       default:
         throw new Error(`Unknown user role: ${user.role}`);
     }
   }
+
 
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
     await UserModel.updateOne({ email }, { password: hashedPassword }).exec();
@@ -211,61 +258,74 @@ export class userRepository implements UserRepository {
 
   async findAllByRole(role: 'student' | 'teacher' | 'admin'): Promise<BaseUserEntity[]> {
     const users = await UserModel.find({ role }).exec();
+
     return users.map(userDoc => {
+      const email = Email.create(userDoc.email);
+      const password = userDoc.password ? Password.create(userDoc.password) : null;
+      const phone = userDoc.phone ? Phone.create(userDoc.phone) : Phone.create('');
+
+
       switch (userDoc.role) {
         case 'student':
           return new StudentEntity(
-            userDoc.id,
+            userDoc._id,
             userDoc.name,
-            Email.create(userDoc.email),
-            Password.create(userDoc.password),
-            Phone.create(userDoc.phone),
+            email,
+            password,
+            phone,
             userDoc.isVerified,
             userDoc.isBlocked,
             userDoc.approvedByAdmin,
             userDoc.hasApplied,
-            userDoc.createdAt,
+            userDoc.isActive,
+            userDoc.googleId,
+            userDoc.createdAt
           );
         case 'teacher':
           return new TeacherEntity(
-            userDoc.id,
+            userDoc._id,
             userDoc.name,
-            Email.create(userDoc.email),
-            Password.create(userDoc.password),
-            Phone.create(userDoc.phone),
+            email,
+            password,
+            phone,
             userDoc.qualifications || [],
             userDoc.experience || 0,
             userDoc.certificates || [],
             userDoc.bio,
             userDoc.profilePic,
-            userDoc.educationHistory,
-            userDoc.specializations,
-            userDoc.awards,
+            userDoc.educationHistory || [],
+            userDoc.specializations || [],
+            userDoc.awards || [],
             userDoc.rejectionMessage,
             userDoc.isVerified,
             userDoc.approvedByAdmin,
             userDoc.isBlocked,
             userDoc.hasApplied,
-            userDoc.createdAt,
+            userDoc.isActive,
+            userDoc.googleId,
+            userDoc.createdAt
           );
         case 'admin':
           return new AdminEntity(
-            userDoc.id,
+            userDoc._id,
             userDoc.name,
-            Email.create(userDoc.email),
-            Password.create(userDoc.password),
-            Phone.create(userDoc.phone),
+            email,
+            password,
+            phone,
             userDoc.isVerified,
             userDoc.isBlocked,
             userDoc.approvedByAdmin,
             userDoc.hasApplied,
-            userDoc.createdAt,
+            userDoc.isActive,
+            userDoc.googleId,
+            userDoc.createdAt
           );
         default:
           throw new Error(`Invalid role: ${userDoc.role}`);
       }
     });
   }
+
 
   async getTeacherProfileById(id: string): Promise<TeacherProfileDTO | null> {
     const userDoc: UserDocument | null = await UserModel.findById({ _id: id, hasApplied: true }).exec();
@@ -343,14 +403,16 @@ export class userRepository implements UserRepository {
       if (!updatedDoc) return null;
 
       const { role, ...userData } = updatedDoc.toObject();
+      const password = userData.password ? Password.create(userData.password) : null;
+      const phone = userData.phone ? Phone.create(userData.phone) : Phone.create('');
       switch (role) {
         case 'teacher':
           return new TeacherEntity(
             userData._id,
             userData.name,
             Email.create(userData.email,),
-            Password.create(userData.password,),
-            Phone.create(userData.phone,),
+            password,
+            phone,
             userData.qualifications,
             userData.experience,
             userData.certificates,
@@ -364,6 +426,8 @@ export class userRepository implements UserRepository {
             userData.approvedByAdmin,
             userData.isBlocked,
             userData.hasApplied,
+            userData.isActive,
+            userData.googleId,
             userData.createdAt
           );
         case 'student':
@@ -371,12 +435,14 @@ export class userRepository implements UserRepository {
             userData._id,
             userData.name,
             Email.create(userData.email,),
-            Password.create(userData.password,),
-            Phone.create(userData.phone,),
+            password,
+            phone,
             userData.isVerified,
             userData.isBlocked,
             userData.approvedByAdmin,
             userData.hasApplied,
+            userData.isActive,
+            userData.googleId,
             userData.createdAt
           );
         case 'admin':
@@ -384,12 +450,14 @@ export class userRepository implements UserRepository {
             userData._id,
             userData.name,
             Email.create(userData.email,),
-            Password.create(userData.password,),
-            Phone.create(userData.phone,),
+            password,
+            phone,
             userData.isVerified,
             userData.isBlocked,
             userData.approvedByAdmin,
             userData.hasApplied,
+            userData.isActive,
+            userData.googleId,
             userData.createdAt
           );
         default:
@@ -426,7 +494,8 @@ export class userRepository implements UserRepository {
       ).exec();
 
       if (!updatedDoc) return null;
-
+      const password = updatedDoc.password ? Password.create(updatedDoc.password) : null;
+      const phone = updatedDoc.phone ? Phone.create(updatedDoc.phone) : Phone.create('');
       const { role, ...userData } = updatedDoc.toObject();
 
       switch (role) {
@@ -435,8 +504,8 @@ export class userRepository implements UserRepository {
             userData._id,
             userData.name,
             Email.create(userData.email),
-            Password.create(userData.password),
-            Phone.create(userData.phone),
+            password,
+            phone,
             userData.qualifications,
             userData.experience,
             userData.certificates,
@@ -450,6 +519,8 @@ export class userRepository implements UserRepository {
             userData.approvedByAdmin,
             userData.isBlocked,
             userData.hasApplied,
+            userData.isActive,
+            userData.googleId,
             userData.createdAt
           );
         case "student":
@@ -457,12 +528,14 @@ export class userRepository implements UserRepository {
             userData._id,
             userData.name,
             Email.create(userData.email),
-            Password.create(userData.password),
-            Phone.create(userData.phone),
+            password,
+            phone,
             userData.isVerified,
             userData.isBlocked,
             userData.approvedByAdmin,
             userData.hasApplied,
+            userData.isActive,
+            userData.googleId,
             userData.createdAt
           );
         case "admin":
@@ -470,12 +543,14 @@ export class userRepository implements UserRepository {
             userData._id,
             userData.name,
             Email.create(userData.email),
-            Password.create(userData.password),
-            Phone.create(userData.phone),
+            password,
+            phone,
             userData.isVerified,
             userData.isBlocked,
             userData.approvedByAdmin,
             userData.hasApplied,
+            userData.isActive,
+            userData.googleId,
             userData.createdAt
           );
         default:
@@ -510,4 +585,108 @@ export class userRepository implements UserRepository {
     }
   }
 
+  async findByGoogleId(googleId: string): Promise<BaseUserEntity | null> {
+    if (!googleId) throw new Error('googleId required');
+    const userDoc = await UserModel.findOne({ googleId }).exec();
+    if (!userDoc) return null;
+
+    const emailVO = Email.create(userDoc.email);
+    const passwordVO = userDoc.password ? Password.create(userDoc.password) : null;
+    const phoneVO = userDoc.phone ? Phone.create(userDoc.phone) : null;
+    const createdAt = userDoc.createdAt ? new Date(userDoc.createdAt) : new Date();
+
+    switch (userDoc.role) {
+      case 'student':
+        return new StudentEntity(
+          userDoc._id,
+          userDoc.name,
+          emailVO,
+          passwordVO,
+          phoneVO,
+          userDoc.isVerified,
+          userDoc.isBlocked,
+          userDoc.approvedByAdmin,
+          userDoc.hasApplied,
+          userDoc.isActive,
+          userDoc.googleId,
+          createdAt
+        );
+      case 'teacher':
+        return new TeacherEntity(
+          userDoc._id,
+          userDoc.name,
+          emailVO,
+          passwordVO,
+          phoneVO,
+          userDoc.qualifications || [],
+          userDoc.experience || 0,
+          userDoc.certificates || [],
+          userDoc.bio,
+          userDoc.profilePic,
+          userDoc.educationHistory || [],
+          userDoc.specializations || [],
+          userDoc.awards || [],
+          userDoc.rejectionMessage,
+          userDoc.isVerified,
+          userDoc.approvedByAdmin,
+          userDoc.isBlocked,
+          userDoc.hasApplied,
+          userDoc.isActive,
+          userDoc.googleId,
+          createdAt
+        );
+      case 'admin':
+        return new AdminEntity(
+          userDoc._id,
+          userDoc.name,
+          emailVO,
+          passwordVO,
+          phoneVO,
+          userDoc.isVerified,
+          userDoc.isBlocked,
+          userDoc.approvedByAdmin,
+          userDoc.hasApplied,
+          userDoc.isActive,
+          userDoc.googleId,
+          createdAt
+        );
+      default:
+        return null;
+    }
+  }
+
+ async createFromGoogle(profile: {
+  id: string;  // Google sub
+  googleId: string;
+  email: string;
+  name: string;
+  picture?: string;
+  phone?: string | null;
+  role?: 'student' | 'teacher' | 'admin';
+}): Promise<BaseUserEntity> {
+
+
+  const newDoc = new UserModel({
+    _id: profile.id,           // 👈 same logic as normal registration
+    googleId: profile.googleId,      // 👈 store Google’s sub here
+    name: profile.name,
+    email: profile.email,
+    profilePic: profile.picture || undefined,
+    phone: profile.phone || null,
+    role: profile.role || 'student',
+    isVerified: true,
+    isActive: true,
+    approvedByAdmin: profile.role === 'teacher' ? 'pending' : 'approved',
+    createdAt: new Date(),
+  });
+
+  await newDoc.save();
+
+  const createdEntity = await this.findByGoogleId(profile.googleId);
+  if (!createdEntity) throw new Error('Failed to create Google user');
+
+  return createdEntity;
 }
+  
+}
+

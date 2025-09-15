@@ -1,6 +1,6 @@
 import { AdminEntity } from "../../../domain/entities/UserEntity";
 import { RegisterUserDTO } from "../../../domain/dtos/RegisterUserDTO";
-import { UserRepository } from "../../repositories/UserRepository";
+import { IUserRepository } from "../../repositories/IUserRepository";
 
 import { Email } from "../../../domain/valueObjects/Email";
 import { Password } from "../../../domain/valueObjects/Password";
@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class RegisterAdminUseCase {
 
-    constructor(private userRepository: UserRepository) {};
+    constructor(private _userRepository: IUserRepository) {};
 
     async execute(dto: RegisterUserDTO): Promise<AdminEntity> {
         try {
@@ -18,7 +18,7 @@ export class RegisterAdminUseCase {
                 throw new Error('Missing required Fields');
             }
 
-            const exists = await this.userRepository.findByEmail(dto.email);
+            const exists = await this._userRepository.findByEmail(dto.email);
             if (exists) {
                 throw new Error('User with this email already exists');
             }
@@ -35,7 +35,7 @@ export class RegisterAdminUseCase {
                 phone,
             )
 
-            const savedUser = await this.userRepository.save(user, "admin");
+            const savedUser = await this._userRepository.save(user, "admin");
             if (!savedUser) {
                 throw new Error('Failed to save user');
             }

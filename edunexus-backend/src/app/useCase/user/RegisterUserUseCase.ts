@@ -1,13 +1,13 @@
 import { StudentEntity } from '../../../domain/entities/UserEntity';
 import { RegisterUserDTO } from '../../../domain/dtos/RegisterUserDTO';
-import { UserRepository } from '../../repositories/UserRepository';
+import { IUserRepository } from '../../repositories/IUserRepository';
 import { Email } from '../../../domain/valueObjects/Email';
 import { Password } from '../../../domain/valueObjects/Password';
 import { Phone } from '../../../domain/valueObjects/Phone';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RegisterUserUseCase {
-    constructor(private userRepository: UserRepository) { }
+    constructor(private _userRepository: IUserRepository) { }
 
    async execute(dto: RegisterUserDTO): Promise<StudentEntity> {
     try {
@@ -21,7 +21,7 @@ export class RegisterUserUseCase {
             throw new Error('Invalid role. Must be "student", "teacher", or "admin"');
         }
 
-        const existingUser = await this.userRepository.findByEmail(dto.email);
+        const existingUser = await this._userRepository.findByEmail(dto.email);
         if (existingUser) {
             throw new Error('User with this email already exists');
         }
@@ -37,7 +37,7 @@ export class RegisterUserUseCase {
             phone,
         );
 
-        const savedUser = await this.userRepository.save(user,'student');
+        const savedUser = await this._userRepository.save(user,'student');
         if (!savedUser) {
             throw new Error('Failed to save user');
         }

@@ -8,7 +8,6 @@ interface UseCase<T> {
 export function adaptRoute<T>(useCase: UseCase<T>) {
   return async (req: Request, res: Response) => {
     try {
-      console.log('Request body:', req.body);
 
       let input;
 
@@ -35,11 +34,8 @@ export function adaptRoute<T>(useCase: UseCase<T>) {
         input = req.body;
       }
 
-      console.log('Prepared input:', input);
-
       const result = await useCase.execute(input);
       
- console.log(result);
  
       if (req.body.email && req.body.password && 'accessToken' in (result as any)) {
         const loginResult = result as { accessToken: string; refreshToken: string };
@@ -50,9 +46,7 @@ export function adaptRoute<T>(useCase: UseCase<T>) {
           sameSite: 'strict',
           maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
-        console.log(loginResult.accessToken);
 
-         console.log(loginResult.refreshToken);
         return res.status(200).json({ accessToken: loginResult.accessToken });
       }
 

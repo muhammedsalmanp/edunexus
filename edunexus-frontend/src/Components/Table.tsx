@@ -56,7 +56,7 @@ const ReusableTable = <T extends Record<string, any>>({ columns, data, tableTitl
   };
 
   return (
-    <div className={`bg-white p-6 rounded-xl shadow-lg overflow-auto ${className}`}>
+    <div className={`bg-white p-6  rounded-b-lg shadow-lg overflow-auto ${className}`}>
       {tableTitle && (
         <h3 className="text-lg font-semibold text-gray-800 mb-4">{tableTitle}</h3>
       )}

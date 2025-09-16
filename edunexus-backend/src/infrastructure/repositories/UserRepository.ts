@@ -9,6 +9,14 @@ import { TeacherProfileDTO } from '../../domain/dtos/TeacherProfileDTO';
 import { UpdateTeacherProfileDTO } from '../../domain/dtos/UpdateTeacherProfileDTO';
 import { Model } from "mongoose";
 
+interface PaginationParams {
+  page: number;
+  limit: number;
+  search?: string;
+  filter?: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified';
+}
+
+
 export class userRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<BaseUserEntity | null> {
@@ -262,7 +270,7 @@ export class userRepository implements IUserRepository {
     return users.map(userDoc => {
       const email = Email.create(userDoc.email);
       const password = userDoc.password ? Password.create(userDoc.password) : null;
-      const phone = userDoc.phone ? Phone.create(userDoc.phone) : Phone.create('');
+      const phone = userDoc.phone ? Phone.create(userDoc.phone) : null;
 
 
       switch (userDoc.role) {
@@ -655,38 +663,152 @@ export class userRepository implements IUserRepository {
     }
   }
 
- async createFromGoogle(profile: {
-  id: string;  // Google sub
-  googleId: string;
-  email: string;
-  name: string;
-  picture?: string;
-  phone?: string | null;
-  role?: 'student' | 'teacher' | 'admin';
-}): Promise<BaseUserEntity> {
+  async createFromGoogle(profile: {
+    id: string;  // Google sub
+    googleId: string;
+    email: string;
+    name: string;
+    picture?: string;
+    phone?: string | null;
+    role?: 'student' | 'teacher' | 'admin';
+  }): Promise<BaseUserEntity> {
 
 
-  const newDoc = new UserModel({
-    _id: profile.id,           // 👈 same logic as normal registration
-    googleId: profile.googleId,      // 👈 store Google’s sub here
-    name: profile.name,
-    email: profile.email,
-    profilePic: profile.picture || undefined,
-    phone: profile.phone || null,
-    role: profile.role || 'student',
-    isVerified: true,
-    isActive: true,
-    approvedByAdmin: profile.role === 'teacher' ? 'pending' : 'approved',
-    createdAt: new Date(),
-  });
+    const newDoc = new UserModel({
+      _id: profile.id,           // 👈 same logic as normal registration
+      googleId: profile.googleId,      // 👈 store Google’s sub here
+      name: profile.name,
+      email: profile.email,
+      profilePic: profile.picture || undefined,
+      phone: profile.phone || null,
+      role: profile.role || 'student',
+      isVerified: true,
+      isActive: true,
+      approvedByAdmin: profile.role === 'teacher' ? 'pending' : 'approved',
+      createdAt: new Date(),
+    });
 
-  await newDoc.save();
+    await newDoc.save();
 
-  const createdEntity = await this.findByGoogleId(profile.googleId);
-  if (!createdEntity) throw new Error('Failed to create Google user');
+    const createdEntity = await this.findByGoogleId(profile.googleId);
+    if (!createdEntity) throw new Error('Failed to create Google user');
 
-  return createdEntity;
+    return createdEntity;
+  }
+
+
+async findAllByRoleWithPagination(
+  role: 'student' | 'teacher' | 'admin',
+  params: PaginationParams
+): Promise<{ data: BaseUserEntity[]; total: number }> {
+  const { page, limit, search, filter } = params;
+  const query: any = { role };
+
+  // Only add search if provided
+  if (search && search.trim() !== '') {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  // Only apply filter if not 'all'
+  if (filter && filter !== 'all') {
+    switch (filter) {
+      case 'blocked':
+        query.isBlocked = true;
+        break;
+      case 'unblocked':
+        query.isBlocked = false;
+        break;
+      case 'verified':
+        query.isVerified = true;
+        break;
+      case 'unverified':
+        query.isVerified = false;
+        break;
+    }
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [userDocs, total] = await Promise.all([
+    UserModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
+    UserModel.countDocuments(query).exec()
+  ]);
+
+  const users: BaseUserEntity[] = userDocs.map(userDoc => {
+    const email = Email.create(userDoc.email);
+    const phone = userDoc.phone ? Phone.create(userDoc.phone) : null;
+    const password = userDoc.password ? Password.create(userDoc.password) : null;
+
+    switch (userDoc.role) {
+      case 'student':
+        return new StudentEntity(
+          userDoc._id, userDoc.name, email, password, phone,
+          userDoc.isVerified, userDoc.isBlocked,
+          userDoc.approvedByAdmin, userDoc.hasApplied,
+          userDoc.isActive, userDoc.googleId, userDoc.createdAt
+        );
+      case 'teacher':
+        return new TeacherEntity(
+          userDoc._id, userDoc.name, email, password, phone,
+          userDoc.qualifications || [], userDoc.experience || 0,
+          userDoc.certificates || [], userDoc.bio,
+          userDoc.profilePic, userDoc.educationHistory || [],
+          userDoc.specializations || [], userDoc.awards || [],
+          userDoc.rejectionMessage, userDoc.isVerified,
+          userDoc.approvedByAdmin, userDoc.isBlocked,
+          userDoc.hasApplied, userDoc.isActive,
+          userDoc.googleId, userDoc.createdAt
+        );
+      case 'admin':
+        return new AdminEntity(
+          userDoc._id, userDoc.name, email, password, phone,
+          userDoc.isVerified, userDoc.isBlocked,
+          userDoc.approvedByAdmin, userDoc.hasApplied,
+          userDoc.isActive, userDoc.googleId, userDoc.createdAt
+        );
+    }
+  }).filter(Boolean) as BaseUserEntity[]; // remove any undefined
+
+  return { data: users, total };
 }
-  
+
+
+async countByRoleWithFilter(
+  role: 'student' | 'teacher' | 'admin',
+  filter?: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified',
+  search?: string
+): Promise<number> {
+  const query: any = { role };
+
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  if (filter && filter !== 'all') {
+    switch (filter) {
+      case 'blocked':
+        query.isBlocked = true;
+        break;
+      case 'unblocked':
+        query.isBlocked = false;
+        break;
+      case 'verified':
+        query.isVerified = true;
+        break;
+      case 'unverified':
+        query.isVerified = false;
+        break;
+    }
+  }
+
+  return await UserModel.countDocuments(query).exec();
+}
+
 }
 

@@ -13,9 +13,8 @@ export function adaptRoute<T extends UseCase<any>>(useCase: T) {
         return res.status(401).json({ error: 'User not authenticated' });
       }
       const result = await useCase.execute(); 
-       console.log(result);
        
-         return res.status(200).json(result);
+        return res.status(200).json(result);
     } catch (error) {
       console.error(error);
       HttpResponse.serverError(res, error); 

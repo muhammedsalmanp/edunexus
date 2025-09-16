@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { userRepository } from "../../../infrastructure/repositories/UserRepository";
 import { GetAllStudentsUseCase } from "../../../app/useCase/admin/GetAllStudentsUseCase";
-import { adaptRoute } from "../../adapters/RouterAdapter";
+import { adaptRoutewithFiltert } from "../../adapters/RouterAdapter";
 import { GetAllTeachersUseCase } from "../../../app/useCase/admin/GetAllTeachersUseCase";
 import authMiddleware from "../../../infrastructure/middleware/authMiddleware";
 import { adaptUpdateUserBlockStatus } from "../../adapters/Teacher/adaptUpdateUserBlockStatus";
@@ -14,12 +14,16 @@ import { adaptRoutewithFilter } from "../../adapters/adaptRoutewithFilter";
 
 const route = Router();
 const useRepo = new userRepository();
+const getAllStudentsUseCase = new GetAllStudentsUseCase(useRepo);
+const getallteachersUseCase = new  GetAllTeachersUseCase(useRepo);
+const updateUserBlockStatusUseCase = new UpdateUserBlockStatusUseCase(useRepo);
+const getTeacherProfileuseCse = new GetTeacherProfileUseCase(useRepo)
+const updateTeacherApprovalUseCase = new UpdateTeacherApprovalUseCase(useRepo);
 
-
-route.get('/get-all-students', authMiddleware, adaptRoutewithFilter(new GetAllStudentsUseCase(useRepo)));
-route.get('/get-all-teachers', authMiddleware, adaptRoute(new GetAllTeachersUseCase(useRepo)));
-route.put('/block/:userId',authMiddleware, adaptUpdateUserBlockStatus(new UpdateUserBlockStatusUseCase(useRepo)));
-route.get('/teachers/profile/:id', authMiddleware,adaptGetTeacherProfile(new GetTeacherProfileUseCase(useRepo)));
-route.post("/teachers-approval/:id",authMiddleware,adaptUpdateTeacherApproval(new UpdateTeacherApprovalUseCase(useRepo)));
+route.get('/get-all-students', authMiddleware, adaptRoutewithFilter(getAllStudentsUseCase));
+route.get('/get-all-teachers', authMiddleware, adaptRoutewithFiltert(getallteachersUseCase));
+route.put('/block/:userId',authMiddleware, adaptUpdateUserBlockStatus(updateUserBlockStatusUseCase));
+route.get('/teachers/profile/:id', authMiddleware,adaptGetTeacherProfile(getTeacherProfileuseCse));
+route.post("/teachers-approval/:id",authMiddleware,adaptUpdateTeacherApproval(updateTeacherApprovalUseCase));
 
 export default route;

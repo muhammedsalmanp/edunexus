@@ -111,16 +111,26 @@ export const resetPassword = async (email: string, otp: string, newPassword: str
   await instance.post('/auth/reset-password', { email, otp, newPassword });
 };
 
-export const getAllTeachers = async (): Promise<Teacher[]> => {
+export const getAllTeachers = async (
+  page: number = 1,
+  limit: number = 8,
+  filter: 'all' | 'blocked' | 'unblocked' | 'pending' | 'approved' | 'rejected' = 'all',
+  search: string = ''
+): Promise<{ teachers: Teacher[]; total: number }> => {
   try {
-    const response = await instance.get('/admin/get-all-teachers');
-    const data = handleResponse(response);
-    return Array.isArray(data) ? normalizeData<Teacher>(data, true) : [];
+    const response = await instance.get(
+      `/admin/get-all-teachers?page=${page}&limit=${limit}&filter=${filter}&search=${search}`
+    );
+    const { data, total } = handleResponse(response);
+
+    const teachers = Array.isArray(data) ? normalizeData<Teacher>(data) : [];
+
+    return { teachers, total };
   } catch (error) {
     handleError(error);
-    return [];
+    return { teachers: [], total: 0 };
   }
-};
+}
 
 export const getAllStudents = async (
   page: number = 1,

@@ -12,7 +12,8 @@ export const adaptUpdateTeacherApproval = (useCase: UpdateTeacherApprovalUseCase
       if (!teacherId) {
         return res.status(400).json({ error: "Teacher ID is required" });
       }
-
+        console.log(rejectionMessage);
+        
       if (!action || !["approved", "rejected"].includes(action)) {
         return res.status(400).json({ error: "Action must be 'approved' or 'rejected'" });
       }

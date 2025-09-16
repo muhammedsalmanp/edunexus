@@ -15,7 +15,7 @@ const TeachersTable = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] = useState(0); 
   const [loading, setLocalLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -281,7 +281,7 @@ const TeachersTable = () => {
             <h2 className="text-lg text-black font-semibold mb-4">
               {actionType === 'block' ? 'Block Teacher' : 'Unblock Teacher'}
             </h2>
-            <p className="mb-6 text-shadow-neutral-400">
+            <p className="mb-6 text-amber-600">
               Do you want to {actionType} <strong>{selectedTeacher.name}</strong>?
             </p>
             <div className="flex justify-end gap-4">

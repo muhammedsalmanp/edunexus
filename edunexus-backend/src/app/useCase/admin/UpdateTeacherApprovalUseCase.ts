@@ -14,7 +14,7 @@ export class UpdateTeacherApprovalUseCase {
     const teacher = await this._teacherRepository.findById(teacherId);
     if (!teacher) throw new Error(`Teacher not found for ID ${teacherId}`);
 
-    const updatedTeacher = await this._teacherRepository.updateUserApprovalStatus(teacherId, action);
+    const updatedTeacher = await this._teacherRepository.updateUserApprovalStatus(teacherId, action,rejectionMessage);
     if (!updatedTeacher) throw new Error("Failed to update approval status");
 
     return updatedTeacher;

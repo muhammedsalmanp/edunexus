@@ -15,24 +15,24 @@ export interface ProfessionalUser {
   educationHistory?: Array<{
     degree: string;
     institution: string;
-    year?: number; // Changed to number
+    year?: number; 
   }>;
   specializations?: string[];
   approvedByAdmin?: 'approved' | 'pending' | 'rejected';
   awards?: Array<{
     title: string;
     issuer?: string;
-    year?: number; // Changed to number
+    year?: number; 
   }>;
   isBlocked?: boolean;
   isVerified?: boolean;
-  createdAt?: string; // Keep as string for frontend, convert to Date when needed
+  createdAt?: string; 
 }
 
 export interface TeacherProfile extends ProfessionalUser {
   role?: string;
   hasApplied?:boolean;
-  rejectionMessage?: string;
+  rejectionMessage?: string | null | undefined;
   
 }
 

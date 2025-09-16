@@ -1,4 +1,4 @@
-import { IUserRepository } from '../../repositories/IUserRepository';
+import { IUserRepository } from "../../repositories/IUserRepository";
 
 export class ApplyTeacherUseCase {
   constructor(private _userRepository: IUserRepository) {}
@@ -16,6 +16,6 @@ export class ApplyTeacherUseCase {
     if (!updatedUser) {
       throw new Error('Failed to retrieve updated user');
     }
-    return { hasApplied: updatedUser.isApplied || false };
+    return { hasApplied: updatedUser.isApplied || false }; // Use hasApplied
   }
 }

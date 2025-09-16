@@ -28,7 +28,8 @@ export function adaptGoogleLoginRoute<T extends object>(useCase: UseCase<T>) {
         maxAge: 7 * 24 * 60 * 60 * 1000, 
       });
 
-
+      console.log("refresh Token:",refreshToken,"access Token:",accessToken);
+     
       return res.status(200).json({
         accessToken,
         user,

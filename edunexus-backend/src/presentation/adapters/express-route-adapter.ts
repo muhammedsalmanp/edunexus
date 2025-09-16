@@ -35,7 +35,8 @@ export function adaptRoute<T>(useCase: UseCase<T>) {
       }
 
       const result = await useCase.execute(input);
-      
+       console.log(result);
+       
  
       if (req.body.email && req.body.password && 'accessToken' in (result as any)) {
         const loginResult = result as { accessToken: string; refreshToken: string };
@@ -46,7 +47,7 @@ export function adaptRoute<T>(useCase: UseCase<T>) {
           sameSite: 'strict',
           maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
-
+      
         return res.status(200).json({ accessToken: loginResult.accessToken });
       }
 

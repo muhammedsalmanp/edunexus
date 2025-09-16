@@ -8,11 +8,12 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 
   try {
     const token = req.headers.authorization?.split(' ')[1];
-
+     const refreshToken = req.cookies.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
-
+    console.log("refresh Token:",refreshToken,"access Token:",token);
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string; role: string };
 
     const user = await UserRepository.findById(decoded.userId);

@@ -13,7 +13,7 @@ interface PaginationParams {
   page: number;
   limit: number;
   search?: string;
-  filter?: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified';
+   filter?: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified' | 'pending' | 'approved' | 'rejected'
 }
 
 
@@ -697,118 +697,136 @@ export class userRepository implements IUserRepository {
   }
 
 
-async findAllByRoleWithPagination(
-  role: 'student' | 'teacher' | 'admin',
-  params: PaginationParams
-): Promise<{ data: BaseUserEntity[]; total: number }> {
-  const { page, limit, search, filter } = params;
-  const query: any = { role };
+ async findAllByRoleWithPagination(
+    role: 'student' | 'teacher' | 'admin',
+    params: PaginationParams
+  ): Promise<{ data: BaseUserEntity[]; total: number }> {
+    const { page, limit, search, filter } = params;
+    const query: any = { role };
 
-  // Only add search if provided
-  if (search && search.trim() !== '') {
-    query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
-    ];
-  }
-
-  // Only apply filter if not 'all'
-  if (filter && filter !== 'all') {
-    switch (filter) {
-      case 'blocked':
-        query.isBlocked = true;
-        break;
-      case 'unblocked':
-        query.isBlocked = false;
-        break;
-      case 'verified':
-        query.isVerified = true;
-        break;
-      case 'unverified':
-        query.isVerified = false;
-        break;
+    // Only add search if provided
+    if (search && search.trim() !== '') {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
     }
-  }
 
-  const skip = (page - 1) * limit;
-
-  const [userDocs, total] = await Promise.all([
-    UserModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
-    UserModel.countDocuments(query).exec()
-  ]);
-
-  const users: BaseUserEntity[] = userDocs.map(userDoc => {
-    const email = Email.create(userDoc.email);
-    const phone = userDoc.phone ? Phone.create(userDoc.phone) : null;
-    const password = userDoc.password ? Password.create(userDoc.password) : null;
-
-    switch (userDoc.role) {
-      case 'student':
-        return new StudentEntity(
-          userDoc._id, userDoc.name, email, password, phone,
-          userDoc.isVerified, userDoc.isBlocked,
-          userDoc.approvedByAdmin, userDoc.hasApplied,
-          userDoc.isActive, userDoc.googleId, userDoc.createdAt
-        );
-      case 'teacher':
-        return new TeacherEntity(
-          userDoc._id, userDoc.name, email, password, phone,
-          userDoc.qualifications || [], userDoc.experience || 0,
-          userDoc.certificates || [], userDoc.bio,
-          userDoc.profilePic, userDoc.educationHistory || [],
-          userDoc.specializations || [], userDoc.awards || [],
-          userDoc.rejectionMessage, userDoc.isVerified,
-          userDoc.approvedByAdmin, userDoc.isBlocked,
-          userDoc.hasApplied, userDoc.isActive,
-          userDoc.googleId, userDoc.createdAt
-        );
-      case 'admin':
-        return new AdminEntity(
-          userDoc._id, userDoc.name, email, password, phone,
-          userDoc.isVerified, userDoc.isBlocked,
-          userDoc.approvedByAdmin, userDoc.hasApplied,
-          userDoc.isActive, userDoc.googleId, userDoc.createdAt
-        );
+    // Only apply filter if not 'all'
+    if (filter && filter !== 'all') {
+      switch (filter) {
+        case 'blocked':
+          query.isBlocked = true;
+          break;
+        case 'unblocked':
+          query.isBlocked = false;
+          break;
+        case 'verified':
+          query.isVerified = true;
+          break;
+        case 'unverified':
+          query.isVerified = false;
+          break;
+        case 'pending':
+          query.approvedByAdmin = 'pending';
+          break;
+        case 'approved':
+          query.approvedByAdmin = 'approved';
+          break;
+        case 'rejected':
+          query.approvedByAdmin = 'rejected';
+          break;
+      }
     }
-  }).filter(Boolean) as BaseUserEntity[]; // remove any undefined
 
-  return { data: users, total };
-}
+    const skip = (page - 1) * limit;
 
+    const [userDocs, total] = await Promise.all([
+      UserModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
+      UserModel.countDocuments(query).exec()
+    ]);
 
-async countByRoleWithFilter(
-  role: 'student' | 'teacher' | 'admin',
-  filter?: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified',
-  search?: string
-): Promise<number> {
-  const query: any = { role };
+    const users: BaseUserEntity[] = userDocs.map(userDoc => {
+      const email = Email.create(userDoc.email);
+      const phone = userDoc.phone ? Phone.create(userDoc.phone) : null;
+      const password = userDoc.password ? Password.create(userDoc.password) : null;
 
-  if (search) {
-    query.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } },
-    ];
+      switch (userDoc.role) {
+        case 'student':
+          return new StudentEntity(
+            userDoc._id, userDoc.name, email, password, phone,
+            userDoc.isVerified, userDoc.isBlocked,
+            userDoc.approvedByAdmin, userDoc.hasApplied,
+            userDoc.isActive, userDoc.googleId, userDoc.createdAt
+          );
+        case 'teacher':
+          return new TeacherEntity(
+            userDoc._id, userDoc.name, email, password, phone,
+            userDoc.qualifications || [], userDoc.experience || 0,
+            userDoc.certificates || [], userDoc.bio,
+            userDoc.profilePic, userDoc.educationHistory || [],
+            userDoc.specializations || [], userDoc.awards || [],
+            userDoc.rejectionMessage, userDoc.isVerified,
+            userDoc.approvedByAdmin, userDoc.isBlocked,
+            userDoc.hasApplied, userDoc.isActive,
+            userDoc.googleId, userDoc.createdAt
+          );
+        case 'admin':
+          return new AdminEntity(
+            userDoc._id, userDoc.name, email, password, phone,
+            userDoc.isVerified, userDoc.isBlocked,
+            userDoc.approvedByAdmin, userDoc.hasApplied,
+            userDoc.isActive, userDoc.googleId, userDoc.createdAt
+          );
+      }
+    }).filter(Boolean) as BaseUserEntity[];
+
+    return { data: users, total };
   }
 
-  if (filter && filter !== 'all') {
-    switch (filter) {
-      case 'blocked':
-        query.isBlocked = true;
-        break;
-      case 'unblocked':
-        query.isBlocked = false;
-        break;
-      case 'verified':
-        query.isVerified = true;
-        break;
-      case 'unverified':
-        query.isVerified = false;
-        break;
+  async countByRoleWithFilter(
+    role: 'student' | 'teacher' | 'admin',
+    filter?: 'all' | 'blocked' | 'unblocked' | 'verified' | 'unverified' | 'pending' | 'approved' | 'rejected',
+    search?: string
+  ): Promise<number> {
+    const query: any = { role };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
     }
-  }
 
-  return await UserModel.countDocuments(query).exec();
-}
+    if (filter && filter !== 'all') {
+      switch (filter) {
+        case 'blocked':
+          query.isBlocked = true;
+          break;
+        case 'unblocked':
+          query.isBlocked = false;
+          break;
+        case 'verified':
+          query.isVerified = true;
+          break;
+        case 'unverified':
+          query.isVerified = false;
+          break;
+        case 'pending':
+          query.approvedByAdmin = null;
+          query.hasApplied = true;
+          break;
+        case 'approved':
+          query.approvedByAdmin = true;
+          break;
+        case 'rejected':
+          query.approvedByAdmin = false;
+          break;
+      }
+    }
+
+    return await UserModel.countDocuments(query).exec();
+  }
 
 }
 

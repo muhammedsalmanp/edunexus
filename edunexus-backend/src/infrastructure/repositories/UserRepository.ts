@@ -254,7 +254,23 @@ export class userRepository implements IUserRepository {
         throw new Error(`Unknown user role: ${user.role}`);
     }
   }
-
+  async apply(userId: string): Promise<void> {
+    try {
+      await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          hasApplied: true,
+          approvedByAdmin: 'pending', // Set to pending on apply
+          rejectionMessage: null, // Clear rejection message
+          updatedAt: new Date(),
+        },
+        { runValidators: true }
+      ).exec();
+    } catch (error) {
+      console.error(`MongoUserRepository: Error applying for user ID ${userId}:`, error);
+      throw new Error('Failed to apply teacher status');
+    }
+  }
 
   async updatePassword(email: string, hashedPassword: string): Promise<void> {
     await UserModel.updateOne({ email }, { password: hashedPassword }).exec();
@@ -335,31 +351,32 @@ export class userRepository implements IUserRepository {
   }
 
 
-  async getTeacherProfileById(id: string): Promise<TeacherProfileDTO | null> {
-    const userDoc: UserDocument | null = await UserModel.findById({ _id: id, hasApplied: true }).exec();
-    if (!userDoc || userDoc.role !== 'teacher') return null;
+async getTeacherProfileById(id: string): Promise<TeacherProfileDTO | null> {
+  const userDoc: UserDocument | null = await UserModel.findById(id).exec();
+  if (!userDoc || userDoc.role !== 'teacher') return null;
 
-    return {
-      _id: userDoc._id,
-      name: userDoc.name,
-      email: userDoc.email,
-      phone: userDoc.phone,
-      role: userDoc.role,
-      qualifications: userDoc.qualifications,
-      experience: userDoc.experience,
-      certificates: userDoc.certificates,
-      bio: userDoc.bio,
-      profilePic: userDoc.profilePic,
-      educationHistory: userDoc.educationHistory,
-      specializations: userDoc.specializations,
-      approvedByAdmin: userDoc.approvedByAdmin,
-      awards: userDoc.awards,
-      isBlocked: userDoc.isBlocked,
-      isVerified: userDoc.isVerified,
-      hasApplied: userDoc.hasApplied,
-      createdAt: userDoc.createdAt,
-    };
-  }
+  return {
+    _id: userDoc._id,
+    name: userDoc.name,
+    email: userDoc.email,
+    phone: userDoc.phone,
+    role: userDoc.role,
+    qualifications: userDoc.qualifications,
+    experience: userDoc.experience,
+    certificates: userDoc.certificates,
+    bio: userDoc.bio,
+    profilePic: userDoc.profilePic,
+    educationHistory: userDoc.educationHistory,
+    specializations: userDoc.specializations,
+    approvedByAdmin: userDoc.approvedByAdmin,
+    rejectionMessage: userDoc.rejectionMessage,
+    awards: userDoc.awards,
+    isBlocked: userDoc.isBlocked,
+    isVerified: userDoc.isVerified,
+    hasApplied: userDoc.hasApplied,
+    createdAt: userDoc.createdAt,
+  };
+}
 
   async updateTeacherProfile(id: string, updates: UpdateTeacherProfileDTO): Promise<TeacherProfileDTO | null> {
     const updateData: any = { ...updates };
@@ -479,20 +496,20 @@ export class userRepository implements IUserRepository {
 
   async updateUserApprovalStatus(
     userId: string,
-    action: "approved" | "rejected",
-    rejectionMessage?: string // Add rejectionMessage parameter
+    action: 'approved' | 'rejected',
+    rejectionMessage?: string
   ): Promise<BaseUserEntity | null> {
     try {
       const updateData: any = {
         approvedByAdmin: action,
+        hasApplied: false,
         updatedAt: new Date(),
       };
 
-      // Only include rejectionMessage if action is "rejected"
-      if (action === "rejected") {
+      if (action === 'rejected') {
         updateData.rejectionMessage = rejectionMessage;
       } else {
-        updateData.rejectionMessage = null; // Clear rejectionMessage if approving
+        updateData.rejectionMessage = null;
       }
 
       const updatedDoc = await UserModel.findByIdAndUpdate(
@@ -507,7 +524,7 @@ export class userRepository implements IUserRepository {
       const { role, ...userData } = updatedDoc.toObject();
 
       switch (role) {
-        case "teacher":
+        case 'teacher':
           return new TeacherEntity(
             userData._id,
             userData.name,
@@ -531,7 +548,7 @@ export class userRepository implements IUserRepository {
             userData.googleId,
             userData.createdAt
           );
-        case "student":
+        case 'student':
           return new StudentEntity(
             userData._id,
             userData.name,
@@ -546,7 +563,7 @@ export class userRepository implements IUserRepository {
             userData.googleId,
             userData.createdAt
           );
-        case "admin":
+        case 'admin':
           return new AdminEntity(
             userData._id,
             userData.name,
@@ -566,29 +583,6 @@ export class userRepository implements IUserRepository {
       }
     } catch (error) {
       console.error(`MongoUserRepository: Error updating approval status for user ID ${userId}:`, error);
-      throw error;
-    }
-  }
-
-  async apply(userId: string): Promise<void> {
-    try {
-      const user = await UserModel.findById(userId).exec();
-      if (!user) {
-        throw new Error('User not found');
-      }
-      if (user.role !== 'teacher') {
-        throw new Error('Only teachers can apply');
-      }
-
-      await UserModel.updateOne(
-        { _id: userId },
-        { $set: { hasApplied: !user.hasApplied, updatedAt: new Date() } },
-        { runValidators: true }
-      ).exec();
-      console.log(user);
-
-    } catch (error) {
-      console.error(`MongoUserRepository: Error toggling apply status for user ID ${userId}:`, error);
       throw error;
     }
   }
